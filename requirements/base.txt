@@ -43,3 +43,4 @@ celery==3.1.24
 
 
 # Your custom requirements go here
+ImageHash==3.4
