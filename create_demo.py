@@ -21,8 +21,9 @@ from django.db import connection
 
 
 if __name__ == '__main__':
-    objects_with_interest_count = 100
-    interests_count = 500
+    objects_with_interest_count = 10000
+    interests_count = 1500
+    interest_per_object = 200
 
     with connection.cursor() as cursor:
         cursor.execute("TRUNCATE TABLE interests_objectinterest")
@@ -45,7 +46,7 @@ if __name__ == '__main__':
 
     for u in ObjectWithInterest.objects.all():
         print(">>> ObjectWithInterest >>>", u.id)
-        for interest in [random.choice(interests) for i in range(1, len(interests))]:
+        for interest in [random.choice(interests) for i in range(1, interest_per_object)]:
             iu = ObjectInterest()
             iu.object_id = u.id
             iu.interest_id = interest.id

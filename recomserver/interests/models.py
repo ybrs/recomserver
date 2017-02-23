@@ -80,6 +80,17 @@ class ObjectInterest(models.Model):
 class ObjectWithInterest(models.Model):
     object_id = models.BigIntegerField()
     object_type = models.CharField(max_length=254)
+    distance = None
+    matches = None
+
+    def interests(self):
+        return sorted(set([o.interest_id for o in ObjectInterest.objects.filter(object_id=self.object_id).all()]))
+
+    def match_count(self):
+        return getattr(self, 'matches', None)
+
+    def similarity(self):
+        return getattr(self, 'distance', None)
 
     def best_matches(self, limit=5):
         # interests_objectinteresthash
@@ -87,12 +98,27 @@ class ObjectWithInterest(models.Model):
         ids = [m.object_id for m in matches]
 
         objects = ObjectWithInterest.objects.filter(object_id__in=ids).all()
+
         for i, obj in enumerate(objects):
             obj.distance = matches[i].distance
+
+        return objects
+
+    def best_matches_with_match_count(self, limit=5):
+        # interests_objectinteresthash
+        matches = ObjectInterestHash.best_matches_with_match_count(self, limit=limit)
+        ids = [m.object_id for m in matches]
+
+        objects = ObjectWithInterest.objects.filter(object_id__in=ids).all()
+
+        for i, obj in enumerate(objects):
+            obj.distance = matches[i].distance
+            obj.matches = matches[i].matches
+
         return objects
 
     def __repr__(self):
-        return '<ObjectWithInterest id=%s object_id=%s>' % (self.id, self.object_id)
+        return '<ObjectWithInterest id=%s object_id=%s oid=%s>' % (self.id, self.object_id, id(self))
 
 class ObjectInterestHash(models.Model):
     object_id = models.BigIntegerField(default=None, null=True)
@@ -107,6 +133,22 @@ class ObjectInterestHash(models.Model):
                 from interests_objectinteresthash
                 order by distance limit %s
         """, [instance.id, limit])
+
+    @classmethod
+    def best_matches_with_match_count(cls, instance, limit=5):
+        return ObjectInterestHash.objects.raw("""
+            select id, object_id,
+                BIT_COUNT(phash ^ (select phash from interests_objectinteresthash where object_id=%s)) as distance,
+                 (
+                     select count(interest_id)
+                     from interests_objectinterest
+                     where object_id=UIH.object_id
+                     and interest_id in (select interest_id from interests_objectinterest where object_id=%s)
+                 ) as matches
+                from interests_objectinteresthash UIH
+                order by distance limit %s
+        """, [instance.id, instance.id, limit])
+
 
     @classmethod
     def calc_hash_for_object(cls, instance):
