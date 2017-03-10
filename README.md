@@ -195,9 +195,11 @@ http localhost:8000/api/interests/similar/3/?limit=10
 
 Notes & Remarks
 ------------------
-0. this project is not intended for production use but to serve as an example ,
-i. If you have a small set of this will give you unexpected results, but maybe its better to use 
-ii. this only works with MySQL right now, probably implementing in postgresql with some extension and using
+- this project is not intended for production use but to serve as an example
+
+- If you have a small set of this will give you unexpected results, but maybe its better to use 
+
+- this only works with MySQL right now, probably implementing in postgresql with some extension and using
 gist indexes will result in much faster results.
 
 License
