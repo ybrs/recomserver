@@ -64,3 +64,4 @@ recomserver/media/
 
 
 staticfiles/
+*.jpg

@@ -18,6 +18,7 @@ from recomserver.users.models import User
 from recomserver.interests.models import Interest, ObjectInterest, ObjectInterestHash, ObjectWithInterest
 from PIL import Image
 from django.db import connection
+from django.db import transaction
 
 
 if __name__ == '__main__':
@@ -31,29 +32,31 @@ if __name__ == '__main__':
         cursor.execute("TRUNCATE TABLE interests_objectwithinterest")
         cursor.execute("TRUNCATE TABLE interests_interest")
 
+    with transaction.atomic():
+        for i in range(1, objects_with_interest_count):
+            print(">>> creating objects with interest", i, "/", objects_with_interest_count)
+            ObjectWithInterest.objects.create(object_id=i, object_type='Generic')
 
-    for i in range(1, objects_with_interest_count):
-        print(">>>", i)
-        object_with_interest = ObjectWithInterest(object_id=i, object_type='Generic')
-        object_with_interest.save()
-
-    for i in range(1, interests_count):
-        print(">>>", i)
-        i = Interest(name='interest_%s' % i)
-        i.save()
+        for i in range(1, interests_count):
+            print(">>> creating interest", i, "/", interests_count)
+            Interest.objects.create(name='interest_%s' % i)
 
     interests = [i for i in Interest.objects.all()]
 
-    for u in ObjectWithInterest.objects.all():
-        print(">>> ObjectWithInterest >>>", u.id)
-        for interest in [random.choice(interests) for i in range(1, interest_per_object)]:
-            iu = ObjectInterest()
-            iu.object_id = u.id
-            iu.interest_id = interest.id
-            iu.save()
+    with transaction.atomic():
+        total = ObjectWithInterest.objects.count()
+        cnt = 0
+        for u in ObjectWithInterest.objects.all():
+            print(">>> ObjectWithInterest >>>", u.id, cnt, "/", total)
+            for interest in [random.choice(interests) for i in range(1, interest_per_object)]:
+                ObjectInterest.objects.create(object_id=u.id, interest_id=interest.id)
+            cnt += 1
 
+    count = ObjectWithInterest.objects.count()
+    cnt = 0
     for object_with_interest in ObjectWithInterest.objects.all():
-        print(">>>", object_with_interest.id)
+        print(">>> calculating hash >>>", object_with_interest.id, cnt, "/", count)
         ObjectInterestHash.calc_hash_for_object(object_with_interest)
+        cnt += 1
 
 
